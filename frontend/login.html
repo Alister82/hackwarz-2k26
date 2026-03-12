@@ -214,17 +214,28 @@
 
             <!-- Driver Section -->
             <div id="driver-register" style="display: none;">
-                <h3>🚖 Driver Portal</h3>
+                <h3 id="driver-title">🚖 Driver Portal</h3>
+                
                 <div class="input-group">
-                    <input type="text" id="d-name" placeholder="Full Name" autocomplete="off">
+                    <input type="tel" id="d-phone" placeholder="Phone Number (Required)" autocomplete="off">
                 </div>
-                <div class="input-group">
-                    <input type="tel" id="d-phone" placeholder="Phone Number" autocomplete="off">
+                
+                <div id="driver-extra-fields">
+                    <div class="input-group">
+                        <input type="text" id="d-name" placeholder="Full Name" autocomplete="off">
+                    </div>
+                    <div class="input-group">
+                        <input type="text" id="d-zone" placeholder="Operating Zones (e.g., Panjim, Baga)" autocomplete="off">
+                    </div>
                 </div>
-                <div class="input-group">
-                    <input type="text" id="d-zone" placeholder="Operating Zones (e.g., Panjim, Baga Beach)" autocomplete="off">
+
+                <button id="d-action-btn" class="btn-primary btn-success" onclick="driverAction()">Register & Enter</button>
+                
+                <div style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-muted);">
+                    <span id="d-toggle-text">Already registered? </span>
+                    <a style="color: var(--accent); cursor: pointer; text-decoration: underline;" onclick="toggleDriverMode()">Login Here</a>
                 </div>
-                <button class="btn-primary btn-success" onclick="driverRegister()">Register & Enter</button>
+
                 <div style="margin-top: 1.5rem;">
                     <a class="toggle-link" style="margin-top:0" onclick="toggleSection('tourist-login')">← Back to Tourist</a>
                 </div>
@@ -276,38 +287,96 @@
             }, 400);
         }
 
-        async function driverRegister() {
-            const name = document.getElementById('d-name').value.trim();
-            const phone = document.getElementById('d-phone').value.trim();
-            const zone = document.getElementById('d-zone').value.trim();
+        let isDriverLogin = false;
 
-            if (!name || !phone || !zone) {
-                alert("Please fill in all fields to register as a driver.");
+        function toggleDriverMode() {
+            isDriverLogin = !isDriverLogin;
+            const extraFields = document.getElementById('driver-extra-fields');
+            const actionBtn = document.getElementById('d-action-btn');
+            const toggleText = document.getElementById('d-toggle-text');
+            const toggleLink = toggleText.nextElementSibling;
+            const title = document.getElementById('driver-title');
+
+            if (isDriverLogin) {
+                extraFields.style.display = 'none';
+                actionBtn.innerText = 'Login to Dashboard';
+                title.innerText = '🚖 Driver Login';
+                toggleText.innerText = 'Need an account? ';
+                toggleLink.innerText = 'Register Here';
+            } else {
+                extraFields.style.display = 'block';
+                actionBtn.innerText = 'Register & Enter';
+                title.innerText = '🚖 Driver Portal';
+                toggleText.innerText = 'Already registered? ';
+                toggleLink.innerText = 'Login Here';
+            }
+        }
+
+        async function driverAction() {
+            const phone = document.getElementById('d-phone').value.trim();
+            const btn = document.getElementById('d-action-btn');
+            const originalText = btn.innerHTML;
+
+            if (!phone) {
+                alert("Phone number is required.");
                 return;
             }
 
-            const btn = document.querySelector('#driver-register button');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = 'Registering...';
-            btn.style.opacity = '0.8';
-
-            try {
-                const res = await fetch('http://127.0.0.1:8000/api/drivers/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, phone, zone })
-                });
-                
-                if (res.ok) {
-                    localStorage.setItem("userName", name);
-                    window.location.href = "index.html";
-                } else {
-                    throw new Error("Registration failed");
+            if (isDriverLogin) {
+                // Login Flow
+                btn.innerHTML = 'Logging in...';
+                btn.style.opacity = '0.8';
+                try {
+                    const res = await fetch('http://127.0.0.1:8000/api/drivers/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: "", phone: phone }) // Tourist model used for login
+                    });
+                    const data = await res.json();
+                    
+                    if (res.ok && data.message === "Success") {
+                        localStorage.setItem("driverPhone", phone);
+                        window.location.href = "driver_dashboard.html";
+                    } else {
+                        throw new Error(data.message || "Invalid credentials");
+                    }
+                } catch (err) {
+                    alert(err.message || "Error logging in. Are you registered?");
+                } finally {
+                    btn.innerHTML = originalText;
+                    btn.style.opacity = '1';
                 }
-            } catch (err) {
-                alert("Error connecting to server. Is the backend running?");
-                btn.innerHTML = originalText;
-                btn.style.opacity = '1';
+                
+            } else {
+                // Register Flow
+                const name = document.getElementById('d-name').value.trim();
+                const zone = document.getElementById('d-zone').value.trim();
+
+                if (!name || !zone) {
+                    alert("Please fill in all fields to register.");
+                    return;
+                }
+
+                btn.innerHTML = 'Registering...';
+                btn.style.opacity = '0.8';
+                try {
+                    const res = await fetch('http://127.0.0.1:8000/api/drivers/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, phone, zone })
+                    });
+                    
+                    if (res.ok) {
+                        localStorage.setItem("driverPhone", phone);
+                        window.location.href = "driver_dashboard.html";
+                    } else {
+                        throw new Error("Registration failed");
+                    }
+                } catch (err) {
+                    alert("Error connecting to server.");
+                    btn.innerHTML = originalText;
+                    btn.style.opacity = '1';
+                }
             }
         }
 

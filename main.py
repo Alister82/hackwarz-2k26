@@ -87,21 +87,55 @@ def login_tourist(tourist: Tourist):
 def register_driver(driver: Driver):
     conn = sqlite3.connect('hackathon.db')
     c = conn.cursor()
-    zones = [z.strip().lower() for z in driver.zone.split(',')]
+    # Ensure zones are a comma-separated string for simpler dashboard management
+    # and compatibility with search
+    zones = driver.zone.strip()
+
+    # Check if a driver with this phone already exists to update instead
+    c.execute("SELECT id FROM drivers WHERE phone = ?", (driver.phone,))
+    existing = c.fetchone()
     
-    for z in zones:
-        if z:
-            c.execute("INSERT INTO drivers (name, phone, zone) VALUES (?, ?, ?)", (driver.name, driver.phone, z))
+    if existing:
+        c.execute("UPDATE drivers SET name = ?, zone = ? WHERE phone = ?", (driver.name, zones, driver.phone))
+        msg = "Driver details updated successfully!"
+    else:
+        c.execute("INSERT INTO drivers (name, phone, zone) VALUES (?, ?, ?)", (driver.name, driver.phone, zones))
+        msg = "Driver registered successfully!"
             
     conn.commit()
     conn.close()
-    return {"message": f"Driver registered successfully for {len(zones)} zone(s)!"}
+    return {"message": msg}
+
+@app.post("/api/drivers/login")
+def login_driver(driver: Tourist): # Name and Phone used as login
+    conn = sqlite3.connect('hackathon.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM drivers WHERE phone = ?", (driver.phone,))
+    existing = c.fetchone()
+    conn.close()
+    
+    if existing:
+        return {"message": "Success"}
+    return {"message": "Invalid credentials", "status": "error"}
+
+@app.get("/api/drivers/details")
+def get_driver_details(phone: str):
+    conn = sqlite3.connect('hackathon.db')
+    c = conn.cursor()
+    c.execute("SELECT name, phone, zone FROM drivers WHERE phone = ?", (phone,))
+    driver = c.fetchone()
+    conn.close()
+    
+    if not driver:
+        return {"status": "error", "message": "Driver not found."}
+    
+    return {"name": driver[0], "phone": driver[1], "zone": driver[2]}
 
 @app.get("/api/drivers/search")
 def search_drivers(zone: str):
     conn = sqlite3.connect('hackathon.db')
     c = conn.cursor()
-    c.execute("SELECT name, phone FROM drivers WHERE zone = ?", (zone.lower(),))
+    c.execute("SELECT name, phone FROM drivers WHERE zone LIKE ?", ('%' + zone.lower() + '%',))
     drivers = c.fetchall()
     conn.close()
     if not drivers:
