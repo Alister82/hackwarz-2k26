@@ -13,7 +13,8 @@ Unpredictable tourist surges at popular beaches and attractions lead to severe t
 * **Smart Alternative Routing:** Automatically suggests lesser-known, nearby alternative spots when primary locations are at peak capacity.
 * **Integrated Navigation:** Seamlessly converts AI suggestions into Google Maps driving directions using the user's live GPS location.
 * **Interactive Mapping:** Utilizes Leaflet.js and OpenStreetMap (Nominatim) to dynamically geocode locations and render visual markers and routes.
-* **Local Cab Integration:** A dedicated portal connecting tourists with registered local cab drivers in specific operational zones.
+* **Local Cab Integration:** A dedicated portal and dashboard connecting tourists with registered local cab drivers, allowing drivers to manage their operational zones natively.
+* **Smart Governance Dashboard:** A dedicated secure portal for government officials to track live search volumes, assess crowd hotspots, and receive AI-driven recommendations for traffic police deployment and bin cleaning schedules.
 
 ---
 
@@ -24,33 +25,49 @@ The following Data Flow Diagram illustrates how information moves through the Cr
 
 ```mermaid
 graph TD
-    A[Tourist / User] -->|1. Enters Location String| B(Frontend UI - app.js)
+    %% Tourist Flow
+    A[Tourist / User] -->|1. Enters Location| B(Frontend UI - Tourist)
     B -->|2. GET /api/search| C{FastAPI Backend}
+    C -->|3. Query| D[Groq API: Llama-3]
+    D -->|4. Crowd Data| C
+    B -->|5. Geocodes| E[OpenStreetMap / Nominatim]
+    E -->|6. Lat/Lon| B
+    C -->|7. Maps URL| B
+    B -->|8. Renders Map| A
     
-    C -->|3. Time & Context Prompt| D[Groq API: Llama-3.3-70b]
-    D -->|4. JSON Crowd Data| C
+    %% Driver Flow
+    F[Cab Driver] -->|9. Enters Zones/Phone| G(Frontend UI - Driver)
+    G -->|10. POST /api/drivers/register| C
+    C -->|11. Writes to DB| H[(SQLite DB)]
+    G -->|12. GET /api/drivers/details| C
     
-    B -->|5. Geocoding Request| E[OpenStreetMap / Nominatim]
-    E -->|6. Lat/Lon Coordinates| B
-    
-    C -->|7. API Response & Google Maps URL| B
-    B -->|8. Renders Leaflet Map & Markers| A
-    
-    A -->|9. Clicks Directions| F[Google Maps App]
+    %% Gov Flow
+    I[Gov Official] -->|13. Logs in| J(Frontend UI - Gov)
+    J -->|14. GET /api/gov/dashboard| C
+    C -->|15. Reads searches table| H
+    H -->|16. Aggregated Data| C
+    C -->|17. Returns JSON Data| J
+    J -->|18. Renders Analytics| I
 ```
 
 ### 2. Activity Diagram
-This diagram maps the user journey and system activities for both Tourists and Cab Drivers.
+This diagram maps the user journey and system activities for Tourists, Cab Drivers, and Government Officials.
 
 ```mermaid
 stateDiagram-v2
     [*] --> LoginPortal
     LoginPortal --> TouristDashboard : Tourist Login
-    LoginPortal --> DriverRegistration : Driver Setup
+    LoginPortal --> DriverDashboard : Driver Setup & Login
+    LoginPortal --> GovDashboard : Government Login
     
-    state DriverRegistration {
-        InputDetails --> SaveToSQLite
-        SaveToSQLite --> RedirectToDashboard
+    state DriverDashboard {
+        ViewProfile --> UpdateZones
+        UpdateZones --> SaveToSQLite
+    }
+    
+    state GovDashboard {
+        FetchSearches --> ViewSearchVolume
+        ViewSearchVolume --> AnalyzeAIRecommendations
     }
     
     state TouristDashboard {
@@ -115,6 +132,18 @@ uvicorn main:app --reload
 
 **6. Launch the Frontend**
 Open the `frontend/login.html` file in any modern web browser to access the application.
+
+**7. Access Government Command Center**
+1. On the login page, click the red **🏛️ Gov Portal** toggle link.
+2. Enter credentials:
+   - Username: `gov`
+   - Password: `gov123`
+3. Click Secure Login to view live traffic analytics and AI deployment recommendations based on search density.
+
+**8. Access Driver Profile**
+1. On the login page, click the **I am a Cab Driver →** link.
+2. Enter your Phone Number, Name, and Operating Zones to dynamically login or register.
+3. Access your secure dashboard to natively update and manage your operating areas, adjusting map markers dynamically.
 
 ---
 
