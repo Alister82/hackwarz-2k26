@@ -65,7 +65,17 @@ def login_tourist(tourist: Tourist):
 
 @app.post("/api/drivers/register")
 def register_driver(driver: Driver):
-    return {"message": "Driver registered successfully!"}
+    conn = sqlite3.connect('hackathon.db')
+    c = conn.cursor()
+    zones = [z.strip().lower() for z in driver.zone.split(',')]
+    
+    for z in zones:
+        if z:
+            c.execute("INSERT INTO drivers (name, phone, zone) VALUES (?, ?, ?)", (driver.name, driver.phone, z))
+            
+    conn.commit()
+    conn.close()
+    return {"message": f"Driver registered successfully for {len(zones)} zone(s)!"}
 
 @app.get("/api/drivers/search")
 def search_drivers(zone: str):

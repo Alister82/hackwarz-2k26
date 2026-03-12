@@ -2,34 +2,228 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - CrowdClear AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
-        .container { width: 350px; margin: 0 auto; padding: 20px; border: 1px solid #ccc; border-radius: 10px; }
-        input, button { width: 90%; padding: 10px; margin: 10px 0; border-radius: 5px; }
-        button { background-color: #28a745; color: white; border: none; cursor: pointer; }
-        .driver-section { display: none; background: #f8f9fa; padding: 10px; border-radius: 5px; }
+        :root {
+            --bg-color: #0B0E14;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-main: #FFFFFF;
+            --text-muted: #94a3b8;
+            --accent: #4f8ef7;
+            --accent-hover: #3b76db;
+            --success: #22c55e;
+            --input-bg: rgba(0, 0, 0, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(79, 142, 247, 0.08), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(34, 197, 94, 0.05), transparent 25%);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .login-wrapper {
+            width: 100%;
+            max-width: 420px;
+            padding: 2rem;
+        }
+
+        .login-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 2.5rem 2rem;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Subtle glowing top border */
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(79, 142, 247, 0.5), transparent);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-icon {
+            background: linear-gradient(135deg, #4f8ef7, #22c55e);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--text-main);
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--input-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        input::placeholder {
+            color: var(--text-muted);
+        }
+
+        input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(79, 142, 247, 0.15);
+            background: rgba(0,0,0,0.4);
+        }
+
+        button.btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 1rem;
+            box-shadow: 0 4px 12px rgba(79, 142, 247, 0.3);
+        }
+
+        button.btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        button.btn-success {
+            background: var(--success);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
+        }
+
+        button.btn-success:hover {
+            background: #16a34a;
+        }
+
+        .toggle-link {
+            display: inline-block;
+            margin-top: 1.5rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-decoration: none;
+            transition: color 0.2s ease;
+            cursor: pointer;
+        }
+
+        .toggle-link:hover {
+            color: var(--text-main);
+            text-decoration: underline;
+        }
+
+        /* Animation for section switching */
+        .fade-enter {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Decorative background element */
+        .bg-orb {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: var(--accent);
+            filter: blur(100px);
+            opacity: 0.15;
+            z-index: -1;
+            top: -50px;
+            right: -50px;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>🏖️ CrowdClear AI</h2>
-        
-        <div id="tourist-login">
-            <h3>Tourist Access</h3>
-            <input type="text" id="t-name" placeholder="Your Name">
-            <input type="text" id="t-phone" placeholder="Phone Number">
-            <button onclick="touristLogin()">Enter Dashboard</button>
-            <p><a href="#" onclick="toggleDriver()">I am a Cab Driver</a></p>
-        </div>
+    <div class="bg-orb"></div>
+    <div class="login-wrapper">
+        <div class="login-card">
+            <div class="logo">
+                <span class="logo-icon">🏖️</span> CrowdClear AI
+            </div>
+            
+            <!-- Tourist Section -->
+            <div id="tourist-login" class="fade-enter">
+                <h3>Welcome Explorer</h3>
+                <div class="input-group">
+                    <input type="text" id="t-name" placeholder="Your Name" autocomplete="off">
+                </div>
+                <!-- Phone number kept for compatibility with original code -->
+                <div class="input-group">
+                    <input type="tel" id="t-phone" placeholder="Phone Number" autocomplete="off">
+                </div>
+                <button class="btn-primary" onclick="touristLogin()">Enter Dashboard</button>
+                <a class="toggle-link" onclick="toggleDriver()">I am a Cab Driver →</a>
+            </div>
 
-        <div id="driver-register" class="driver-section">
-            <h3>🚖 Driver Registration</h3>
-            <input type="text" id="d-name" placeholder="Full Name">
-            <input type="text" id="d-phone" placeholder="Phone Number">
-            <input type="text" id="d-zone" placeholder="Operating Zone (e.g., Panjim)">
-            <button onclick="driverRegister()">Register & Enter</button>
-            <p><a href="#" onclick="toggleDriver()">Back to Tourist Login</a></p>
+            <!-- Driver Section -->
+            <div id="driver-register" style="display: none;">
+                <h3>🚖 Driver Portal</h3>
+                <div class="input-group">
+                    <input type="text" id="d-name" placeholder="Full Name" autocomplete="off">
+                </div>
+                <div class="input-group">
+                    <input type="tel" id="d-phone" placeholder="Phone Number" autocomplete="off">
+                </div>
+                <div class="input-group">
+                    <input type="text" id="d-zone" placeholder="Operating Zones (e.g., Panjim, Baga Beach)" autocomplete="off">
+                </div>
+                <button class="btn-primary btn-success" onclick="driverRegister()">Register & Enter</button>
+                <a class="toggle-link" onclick="toggleDriver()">← Back to Tourist Login</a>
+            </div>
         </div>
     </div>
 
@@ -37,29 +231,73 @@
         function toggleDriver() {
             const t = document.getElementById('tourist-login');
             const d = document.getElementById('driver-register');
-            if (t.style.display === 'none') { t.style.display = 'block'; d.style.display = 'none'; } 
-            else { t.style.display = 'none'; d.style.display = 'block'; }
+            
+            if (t.style.display === 'none') {
+                t.style.display = 'block';
+                t.classList.add('fade-enter');
+                d.style.display = 'none';
+                d.classList.remove('fade-enter');
+            } else {
+                t.style.display = 'none';
+                t.classList.remove('fade-enter');
+                d.style.display = 'block';
+                d.classList.add('fade-enter');
+            }
         }
 
         async function touristLogin() {
-            const name = document.getElementById('t-name').value;
-            localStorage.setItem("userName", name); // Save name for the dashboard
-            window.location.href = "index.html"; // Redirect to main app
+            const nameInput = document.getElementById('t-name').value.trim();
+            const name = nameInput || "Guest";
+            localStorage.setItem("userName", name);
+            
+            const btn = document.querySelector('#tourist-login button');
+            btn.innerHTML = 'Connecting...';
+            btn.style.opacity = '0.8';
+            
+            setTimeout(() => {
+                window.location.href = "index.html";
+            }, 400);
         }
 
         async function driverRegister() {
-            const name = document.getElementById('d-name').value;
-            const phone = document.getElementById('d-phone').value;
-            const zone = document.getElementById('d-zone').value;
+            const name = document.getElementById('d-name').value.trim();
+            const phone = document.getElementById('d-phone').value.trim();
+            const zone = document.getElementById('d-zone').value.trim();
 
-            await fetch('http://127.0.0.1:8000/api/drivers/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, phone, zone })
-            });
-            alert("Driver Registered! Redirecting to Dashboard...");
-            window.location.href = "index.html";
+            if (!name || !phone || !zone) {
+                alert("Please fill in all fields to register as a driver.");
+                return;
+            }
+
+            const btn = document.querySelector('#driver-register button');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Registering...';
+            btn.style.opacity = '0.8';
+
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/drivers/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, phone, zone })
+                });
+                
+                if (res.ok) {
+                    localStorage.setItem("userName", name);
+                    window.location.href = "index.html";
+                } else {
+                    throw new Error("Registration failed");
+                }
+            } catch (err) {
+                alert("Error connecting to server. Is the backend running?");
+                btn.innerHTML = originalText;
+                btn.style.opacity = '1';
+            }
         }
+
+        // Allow pressing Enter to submit
+        document.getElementById('t-name').addEventListener('keydown', e => { if(e.key === 'Enter') touristLogin(); });
+        document.getElementById('t-phone').addEventListener('keydown', e => { if(e.key === 'Enter') touristLogin(); });
+        document.getElementById('d-zone').addEventListener('keydown', e => { if(e.key === 'Enter') driverRegister(); });
     </script>
 </body>
 </html>

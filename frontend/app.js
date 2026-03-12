@@ -287,3 +287,9 @@ async function findCabs() {
 document.getElementById('zone-input')?.addEventListener('keydown', e => {
     if (e.key === 'Enter') findCabs();
 });
+
+// ── Logout ─────────────────────────────────────────────────────────────────
+function logout() {
+    localStorage.removeItem('userName');
+    window.location.href = 'login.html';
+}
