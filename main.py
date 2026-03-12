@@ -9,7 +9,7 @@ import urllib.parse
 import google.generativeai as genai
 
 # --- 🚨 PASTE YOUR REAL GEMINI KEY HERE 🚨 ---
-GEMINI_API_KEY = "YOUR_GEMINI_API_KEY"  
+GEMINI_API_KEY = "AIzaSyDKvhEpuYYlJDFAscL0jUgmjwGi70B23L0"  
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
@@ -61,27 +61,31 @@ def search_drivers(zone: str):
         return {"drivers": [], "message": "No cabs found nearby."}
     return {"drivers": [{"name": d[0], "phone": d[1]} for d in drivers]}
 
-# --- 🚨 THE DETAILED GEMINI PREDICTION ENGINE 🚨 ---
+# --- 🚨 THE PREMIUM LOCAL GUIDE AI ENGINE 🚨 ---
 @app.get("/api/search")
 def search_place(place: str):
     tz = pytz.timezone('Asia/Kolkata')
     now = datetime.now(tz)
     current_time_str = now.strftime('%A, %I:%M %p') 
     
+    # We explicitly tell Gemini to mimic the exact style you want
     prompt = f"""
-    You are a highly knowledgeable local tourism AI for Goa. The current local time is {current_time_str}.
+    You are a premium, highly knowledgeable local tourism AI for Goa. The current local time is {current_time_str}.
     A tourist wants to visit '{place}' right now.
     
-    Provide a highly detailed, realistic assessment of the crowd at this exact time. 
-    Also, suggest ONE nearby, similar place that is guaranteed to be less crowded.
+    You MUST respond with a strict JSON object exactly in this format. 
+    Make the content rich, descriptive, and formatted like a high-end travel guide.
     
-    You MUST respond with a strict JSON object exactly in this format:
     {{
       "crowd_level": "High", (or Medium or Low)
-      "detailed_status": "A rich 2-3 sentence description of the current crowd vibe.",
-      "features": ["Feature 1: description", "Feature 2: description"],
-      "trends": "Description of how the crowd changes later in the day.",
-      "suggested_place": "Name of the alternative spot",
+      "headline": "Example: {place} is highly unlikely to be crowded right now.",
+      "description": "A rich 2-3 sentence description of why it is crowded or not right now based on the location and time.",
+      "feature_1_title": "Relaxed environment",
+      "feature_1_desc": "Features a wide, peaceful stretch of white sand...",
+      "feature_2_title": "Laid-back shacks",
+      "feature_2_desc": "The beach shacks here maintain an authentic vibe...",
+      "trends": "While it remains quiet during the early afternoon, there is usually...",
+      "suggested_place": "Name of ONE nearby alternative spot (ONLY if the main place is High/Medium. If Low, say 'None needed')",
       "suggestion_reason": "Why they should go here instead."
     }}
     """
@@ -95,29 +99,34 @@ def search_place(place: str):
         
         ai_data = json.loads(response.text)
         
-        # Extract the detailed data
+        # Extract the detailed data safely
         crowd_level = ai_data.get("crowd_level", "Medium").capitalize()
-        detailed_status = ai_data.get("detailed_status", "No detailed status available.")
-        features = ai_data.get("features", [])
-        trends = ai_data.get("trends", "No trend data available.")
-        suggested_place = ai_data.get("suggested_place", "None")
-        suggestion_reason = ai_data.get("suggestion_reason", "")
+        suggested_place = ai_data.get("suggested_place", "None needed")
         
-        # Generate the smart Google Maps Redirect URL
-        # By leaving the origin blank, Google Maps automatically uses the tourist's live GPS location!
-        encoded_destination = urllib.parse.quote(f"{suggested_place}, Goa, India")
-        google_maps_url = f"https://www.google.com/maps/dir/?api=1&destination={encoded_destination}"
+        # Generate the smart Google Maps Directions URL
+        # Format: https://www.google.com/maps/dir/?api=1&destination=Place+Name
+        # By leaving the origin blank, it automatically uses the user's live phone GPS!
+        if suggested_place.lower() != "none needed" and suggested_place.lower() != "none":
+            encoded_destination = urllib.parse.quote(f"{suggested_place}, Goa, India")
+            google_maps_url = f"https://www.google.com/maps/dir/?api=1&destination={encoded_destination}"
+        else:
+            google_maps_url = ""
                 
+        # Send everything to the frontend
         return {
             "place": place, 
             "status": crowd_level,
-            "detailed_status": detailed_status,
-            "features": features,
-            "trends": trends,
+            "headline": ai_data.get("headline", ""),
+            "description": ai_data.get("description", ""),
+            "feature_1_title": ai_data.get("feature_1_title", ""),
+            "feature_1_desc": ai_data.get("feature_1_desc", ""),
+            "feature_2_title": ai_data.get("feature_2_title", ""),
+            "feature_2_desc": ai_data.get("feature_2_desc", ""),
+            "trends": ai_data.get("trends", ""),
             "suggested_place": suggested_place,
-            "suggestion_reason": suggestion_reason,
+            "suggestion_reason": ai_data.get("suggestion_reason", ""),
             "google_maps_url": google_maps_url,
-            "prediction_type": "Gemini 1.5 Flash Detailed Analysis" 
+            "prediction_type": "Gemini Premium Guide" 
         }
         
     except Exception as e:
@@ -125,10 +134,12 @@ def search_place(place: str):
         return {
             "place": place, 
             "status": "Error", 
-            "detailed_status": f"🚨 FATAL ERROR: {str(e)} 🚨",
-            "features": [],
+            "headline": "🚨 System Error Occurred 🚨",
+            "description": f"Error details: {str(e)}",
+            "feature_1_title": "", "feature_1_desc": "",
+            "feature_2_title": "", "feature_2_desc": "",
             "trends": "",
-            "suggested_place": "Error",
+            "suggested_place": "",
             "suggestion_reason": "",
             "google_maps_url": "",
             "prediction_type": "Failed" 

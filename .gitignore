@@ -1,3 +1,53 @@
+
+.env
+*.env
+secrets.json
+application-secret.properties
+
+
+# 2. PYTHON IGNORE
+# Virtual Environments
+venv/
+env/
+.venv/
+
+# Temporary and Cache Files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# SQLite Databases (so you don't overwrite teammates' test data)
+*.sqlite3
+*.db
+
+
+# 3. JAVA & SPRING BOOT IGNORES
+
+*.class
+
+# Build folders (Maven/Gradle)
+target/
+build/
+out/
+
+# Packaged files
+*.jar
+*.war
+*.ear
+
+# =========================
+# 4. OS & CODE EDITOR IGNORES
+# =========================
+# Mac / Windows background files
+.DS_Store
+Thumbs.db
+
+# VS Code / IntelliJ settings
+.vscode/
+.idea/
+*.suo
+*.user
 # =========================
 # 1. SECRETS (NEVER UPLOAD)
 # =========================
