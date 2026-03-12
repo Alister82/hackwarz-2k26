@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CrowdClear AI</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; max-width: 800px; }
+        .card { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
+        .danger { color: red; font-weight: bold; }
+        .safe { color: green; font-weight: bold; }
+        /* The new Map Container */
+        #map { width: 100%; height: 350px; border-radius: 8px; margin-top: 15px; display: none; z-index: 1;}
+    </style>
+</head>
+<body>
+    <h1 id="welcome-text">🏖️ CrowdClear AI</h1>
+
+    <div class="card">
+        <h2>Check Spot Crowd</h2>
+        <input type="text" id="place-input" placeholder="Enter a beach (e.g., Baga Beach)">
+        <button onclick="checkCrowd()">Search & Map</button>
+        
+        <div id="result-box" style="display: none; margin-top: 15px;">
+            <p><strong>Crowd Level:</strong> <span id="crowd-status"></span></p>
+            <p id="ai-suggestion-box"><strong>Alternative Suggestion:</strong> <span id="ai-text"></span></p>
+            
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>🚖 Local Cab Booking</h2>
+        <input type="text" id="zone-input" placeholder="Enter zone (e.g., panjim)">
+        <button onclick="findCabs()">Find Nearby Cabs</button>
+        <ul id="cab-list"></ul>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - CrowdClear AI</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+        .container { width: 350px; margin: 0 auto; padding: 20px; border: 1px solid #ccc; border-radius: 10px; }
+        input, button { width: 90%; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        button { background-color: #28a745; color: white; border: none; cursor: pointer; }
+        .driver-section { display: none; background: #f8f9fa; padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🏖️ CrowdClear AI</h2>
+        
+        <div id="tourist-login">
+            <h3>Tourist Access</h3>
+            <input type="text" id="t-name" placeholder="Your Name">
+            <input type="text" id="t-phone" placeholder="Phone Number">
+            <button onclick="touristLogin()">Enter Dashboard</button>
+            <p><a href="#" onclick="toggleDriver()">I am a Cab Driver</a></p>
+        </div>
+
+        <div id="driver-register" class="driver-section">
+            <h3>🚖 Driver Registration</h3>
+            <input type="text" id="d-name" placeholder="Full Name">
+            <input type="text" id="d-phone" placeholder="Phone Number">
+            <input type="text" id="d-zone" placeholder="Operating Zone (e.g., Panjim)">
+            <button onclick="driverRegister()">Register & Enter</button>
+            <p><a href="#" onclick="toggleDriver()">Back to Tourist Login</a></p>
+        </div>
+    </div>
+
+    <script>
+        function toggleDriver() {
+            const t = document.getElementById('tourist-login');
+            const d = document.getElementById('driver-register');
+            if (t.style.display === 'none') { t.style.display = 'block'; d.style.display = 'none'; } 
+            else { t.style.display = 'none'; d.style.display = 'block'; }
+        }
+
+        async function touristLogin() {
+            const name = document.getElementById('t-name').value;
+            localStorage.setItem("userName", name); // Save name for the dashboard
+            window.location.href = "index.html"; // Redirect to main app
+        }
+
+        async function driverRegister() {
+            const name = document.getElementById('d-name').value;
+            const phone = document.getElementById('d-phone').value;
+            const zone = document.getElementById('d-zone').value;
+
+            await fetch('http://127.0.0.1:8000/api/drivers/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, phone, zone })
+            });
+            alert("Driver Registered! Redirecting to Dashboard...");
+            window.location.href = "index.html";
+        }
+    </script>
+</body>
+</html>
