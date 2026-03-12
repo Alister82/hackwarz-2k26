@@ -91,18 +91,19 @@ def search_place(place: str):
     
     You MUST respond with a strict JSON object exactly in this format.
     Make the content rich, descriptive, and formatted like a high-end travel guide.
+    Determine the actual crowd_level based on the location and current time. If it's a popular place like Baga Beach during the day or evening, it should probably be High.
     
     {{
-      "crowd_level": "High",
-      "headline": "Example: {place} is highly unlikely to be crowded right now.",
-      "description": "A rich 2-3 sentence description of why it is crowded or not right now based on the location and time.",
-      "feature_1_title": "Relaxed environment",
-      "feature_1_desc": "Features a wide, peaceful stretch of white sand...",
-      "feature_2_title": "Laid-back shacks",
-      "feature_2_desc": "The beach shacks here maintain an authentic vibe...",
-      "trends": "While it remains quiet during the early afternoon, there is usually...",
-      "suggested_place": "Name of ONE nearby alternative spot (ONLY if the main place is High/Medium. If Low, say 'None needed')",
-      "suggestion_reason": "Why they should go here instead."
+      "crowd_level": "High", (Choose strictly one: "Low", "Medium", or "High")
+      "headline": "[Generate a short headline stating explicitly if the place is CROWDED or CALM right now]",
+      "description": "[A rich 2-3 sentence description explaining why it is or isn't crowded based on the current time and location]",
+      "feature_1_title": "[Name of a feature]",
+      "feature_1_desc": "[Description of the feature]",
+      "feature_2_title": "[Name of another feature]",
+      "feature_2_desc": "[Description of the feature]",
+      "trends": "[Explain the general crowd trends for this place throughout the day]",
+      "suggested_place": "[Name of ONE nearby alternative spot (ONLY if the main place is High/Medium. If Low, say 'None needed')]",
+      "suggestion_reason": "[Why they should go here instead]"
     }}
     """
 

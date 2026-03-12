@@ -98,7 +98,8 @@ async function checkCrowd() {
         if (!apiRes.ok) throw new Error(`Server returned ${apiRes.status}`);
         const data    = await apiRes.json();
 
-        const level     = data.status || 'Unknown';   // Low / Medium / High / Error
+        let level = (data.status || 'Unknown').trim();
+        level = level.charAt(0).toUpperCase() + level.slice(1).toLowerCase();
         const isCrowded = level === 'High' || level === 'Medium';
 
         // ── 2. Render main crowd result card ─────────────────────────────
