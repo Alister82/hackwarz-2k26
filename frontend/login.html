@@ -206,7 +206,10 @@
                     <input type="tel" id="t-phone" placeholder="Phone Number" autocomplete="off">
                 </div>
                 <button class="btn-primary" onclick="touristLogin()">Enter Dashboard</button>
-                <a class="toggle-link" onclick="toggleDriver()">I am a Cab Driver →</a>
+                <div style="display: flex; justify-content: space-between; margin-top: 1.5rem;">
+                    <a class="toggle-link" style="margin-top:0" onclick="toggleSection('driver-register')">I am a Cab Driver →</a>
+                    <a class="toggle-link" style="margin-top:0; color: #ef4444;" onclick="toggleSection('gov-login')">🏛️ Gov Portal</a>
+                </div>
             </div>
 
             <!-- Driver Section -->
@@ -222,27 +225,41 @@
                     <input type="text" id="d-zone" placeholder="Operating Zones (e.g., Panjim, Baga Beach)" autocomplete="off">
                 </div>
                 <button class="btn-primary btn-success" onclick="driverRegister()">Register & Enter</button>
-                <a class="toggle-link" onclick="toggleDriver()">← Back to Tourist Login</a>
+                <div style="margin-top: 1.5rem;">
+                    <a class="toggle-link" style="margin-top:0" onclick="toggleSection('tourist-login')">← Back to Tourist</a>
+                </div>
+            </div>
+
+            <!-- Gov Section -->
+            <div id="gov-login" style="display: none;">
+                <h3 style="color: #ef4444;">🏛️ Government Portal</h3>
+                <div class="input-group">
+                    <input type="text" id="g-user" placeholder="Admin Username" autocomplete="off">
+                </div>
+                <div class="input-group">
+                    <input type="password" id="g-pass" placeholder="Password" autocomplete="off">
+                </div>
+                <button class="btn-primary" style="background:#ef4444" onclick="govLogin()">Secure Login</button>
+                <div style="margin-top: 1.5rem;">
+                    <a class="toggle-link" style="margin-top:0" onclick="toggleSection('tourist-login')">← Back to Tourist</a>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        function toggleDriver() {
-            const t = document.getElementById('tourist-login');
-            const d = document.getElementById('driver-register');
-            
-            if (t.style.display === 'none') {
-                t.style.display = 'block';
-                t.classList.add('fade-enter');
-                d.style.display = 'none';
-                d.classList.remove('fade-enter');
-            } else {
-                t.style.display = 'none';
-                t.classList.remove('fade-enter');
-                d.style.display = 'block';
-                d.classList.add('fade-enter');
-            }
+        function toggleSection(sectionId) {
+            const sections = ['tourist-login', 'driver-register', 'gov-login'];
+            sections.forEach(id => {
+                const el = document.getElementById(id);
+                if (id === sectionId) {
+                    el.style.display = 'block';
+                    el.classList.add('fade-enter');
+                } else {
+                    el.style.display = 'none';
+                    el.classList.remove('fade-enter');
+                }
+            });
         }
 
         async function touristLogin() {
@@ -294,10 +311,49 @@
             }
         }
 
+        async function govLogin() {
+            const username = document.getElementById('g-user').value.trim();
+            const password = document.getElementById('g-pass').value.trim();
+
+            if (!username || !password) {
+                alert("Please enter administrative credentials.");
+                return;
+            }
+
+            const btn = document.querySelector('#gov-login button');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Authenticating...';
+            btn.style.opacity = '0.8';
+
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/gov/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok && data.message === "Success") {
+                    localStorage.setItem("govAuth", "true");
+                    window.location.href = "gov_dashboard.html";
+                } else {
+                    alert(data.message || "Invalid credentials");
+                    btn.innerHTML = originalText;
+                    btn.style.opacity = '1';
+                }
+            } catch (err) {
+                alert("Error connecting to server.");
+                btn.innerHTML = originalText;
+                btn.style.opacity = '1';
+            }
+        }
+
         // Allow pressing Enter to submit
         document.getElementById('t-name').addEventListener('keydown', e => { if(e.key === 'Enter') touristLogin(); });
         document.getElementById('t-phone').addEventListener('keydown', e => { if(e.key === 'Enter') touristLogin(); });
         document.getElementById('d-zone').addEventListener('keydown', e => { if(e.key === 'Enter') driverRegister(); });
+        document.getElementById('g-pass').addEventListener('keydown', e => { if(e.key === 'Enter') govLogin(); });
     </script>
 </body>
 </html>

@@ -47,6 +47,23 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS drivers (id INTEGER PRIMARY KEY, name TEXT, phone TEXT, zone TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS tourists (id INTEGER PRIMARY KEY, name TEXT, phone TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS alerts (id INTEGER PRIMARY KEY, tourist_name TEXT, place TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS searches (id INTEGER PRIMARY KEY, place TEXT, timestamp TEXT, crowd_level TEXT)''')
+    
+    # Mock data seeding
+    c.execute("SELECT COUNT(*) FROM searches")
+    if c.fetchone()[0] == 0:
+        mock_places = [
+            ("Baga Beach", "High", 145),
+            ("Calangute Beach", "High", 112),
+            ("Dudhsagar Waterfalls", "Medium", 68),
+            ("Aguada Fort", "Medium", 45),
+            ("Butterfly Beach", "Low", 14),
+            ("Divar Island", "Low", 6)
+        ]
+        now_str = datetime.now().isoformat()
+        for place, level, count in mock_places:
+            c.executemany("INSERT INTO searches (place, timestamp, crowd_level) VALUES (?, ?, ?)", [(place, now_str, level)] * count)
+            
     conn.commit()
     conn.close()
 
@@ -57,6 +74,9 @@ class Driver(BaseModel):
 
 class Tourist(BaseModel):
     name: str; phone: str
+
+class GovLogin(BaseModel):
+    username: str; password: str
 
 # ── LOGIN & CAB ROUTES ─────────────────────────────────────────────────────
 @app.post("/api/tourist/login")
@@ -87,6 +107,51 @@ def search_drivers(zone: str):
     if not drivers:
         return {"drivers": [], "message": "No cabs found nearby."}
     return {"drivers": [{"name": d[0], "phone": d[1]} for d in drivers]}
+
+# ── GOV DASHBOARD ROUTES ───────────────────────────────────────────────────
+@app.post("/api/gov/login")
+def login_gov(creds: GovLogin):
+    if creds.username == "gov" and creds.password == "gov123":
+        return {"message": "Success"}
+    return {"message": "Invalid username or password", "status": "error"}
+
+@app.get("/api/gov/dashboard")
+def gov_dashboard():
+    conn = sqlite3.connect('hackathon.db')
+    c = conn.cursor()
+    c.execute('''
+        SELECT place, COUNT(*) as search_count, 
+               (SELECT crowd_level FROM searches s2 WHERE s2.place = searches.place ORDER BY id DESC LIMIT 1) as latest_level
+        FROM searches
+        GROUP BY place
+        ORDER BY search_count DESC
+    ''')
+    results = c.fetchall()
+    conn.close()
+    
+    dashboard_data = []
+    for row in results:
+        place, count, level = row
+        
+        if level == "High" or count > 100:
+            police_action = "🚧 Deploy Traffic Police & Crowd Control"
+            clean_action = "🗑️ Schedule Heavy Bin Emptying Tomorrow Morning"
+        elif level == "Medium" or count > 50:
+            police_action = "👮 Deploy Normal Patrol"
+            clean_action = "🧹 Routine Bin Maintenance Tomorrow"
+        else:
+            police_action = "✅ No Additional Police Needed"
+            clean_action = "✨ Normal Cleaning Schedule"
+            
+        dashboard_data.append({
+            "place": place,
+            "searches": count,
+            "crowd_level": level,
+            "police_suggestion": police_action,
+            "cleaning_suggestion": clean_action
+        })
+        
+    return {"data": dashboard_data}
 
 # ── AI CROWD GUIDE ENGINE ──────────────────────────────────────────────────
 @app.get("/api/search")
@@ -131,6 +196,14 @@ def search_place(place: str):
 
         crowd_level = ai_data.get("crowd_level", "Medium").capitalize()
         suggested_place = ai_data.get("suggested_place", "None needed")
+
+        # Insert search record for Gov Dashboard
+        conn = sqlite3.connect('hackathon.db')
+        c = conn.cursor()
+        c.execute("INSERT INTO searches (place, timestamp, crowd_level) VALUES (?, ?, ?)", 
+                 (place, datetime.now().isoformat(), crowd_level))
+        conn.commit()
+        conn.close()
 
         if suggested_place.lower() not in ("none needed", "none"):
             encoded_destination = urllib.parse.quote(f"{suggested_place}, Goa, India")
