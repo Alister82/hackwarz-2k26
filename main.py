@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import sqlite3
 import json
+import math
 from datetime import datetime
 import pytz
 import urllib.parse
@@ -48,6 +49,10 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS tourists (id INTEGER PRIMARY KEY, name TEXT, phone TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS alerts (id INTEGER PRIMARY KEY, tourist_name TEXT, place TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS searches (id INTEGER PRIMARY KEY, place TEXT, timestamp TEXT, crowd_level TEXT)''')
+    try:
+        c.execute('''ALTER TABLE searches ADD COLUMN suggested_place TEXT''')
+    except sqlite3.OperationalError:
+        pass
     
     # Mock data seeding
     c.execute("SELECT COUNT(*) FROM searches")
@@ -68,6 +73,14 @@ def init_db():
     conn.close()
 
 init_db()
+
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371.0 # Earth radius in kilometers
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
 
 class Driver(BaseModel):
     name: str; phone: str; zone: str
@@ -211,8 +224,16 @@ def search_place(place: str):
       "feature_2_title": "[Name of another feature]",
       "feature_2_desc": "[Description of the feature]",
       "trends": "[Explain the general crowd trends for this place throughout the day]",
-      "suggested_place": "[Name of ONE nearby alternative spot (ONLY if the main place is High/Medium. If Low, say 'None needed')]",
-      "suggestion_reason": "[Why they should go here instead]"
+      "place_lat": 15.55, (Latitude of '{place}' as float)
+      "place_lon": 73.75, (Longitude of '{place}' as float)
+      "alternatives": [
+        {{
+          "name": "[Name of nearby alternative]",
+          "lat": 15.58, (Latitude of alternative as float)
+          "lon": 73.74, (Longitude of alternative as float)
+          "reason": "[Why to go here instead]"
+        }}
+      ] (Provide up to 3 nearby alternatives if crowd is High/Medium)
     }}
     """
 
@@ -229,17 +250,55 @@ def search_place(place: str):
         ai_data = json.loads(response.choices[0].message.content)
 
         crowd_level = ai_data.get("crowd_level", "Medium").capitalize()
-        suggested_place = ai_data.get("suggested_place", "None needed")
+        suggested_place = "None needed"
+        suggestion_reason = ""
 
-        # Insert search record for Gov Dashboard
         conn = sqlite3.connect('hackathon.db')
         c = conn.cursor()
-        c.execute("INSERT INTO searches (place, timestamp, crowd_level) VALUES (?, ?, ?)", 
-                 (place, datetime.now().isoformat(), crowd_level))
+
+        if crowd_level in ("High", "Medium"):
+            place_lat = ai_data.get("place_lat", 0.0)
+            place_lon = ai_data.get("place_lon", 0.0)
+            alternatives = ai_data.get("alternatives", [])
+            
+            valid_alternatives = []
+            for alt in alternatives:
+                try:
+                    alt_lat = float(alt.get("lat", 0.0))
+                    alt_lon = float(alt.get("lon", 0.0))
+                    dist = haversine(float(place_lat), float(place_lon), alt_lat, alt_lon)
+                    if dist <= 20.0: # Filter to only keep nearby places (within 20km)
+                        valid_alternatives.append((alt, dist))
+                except (ValueError, TypeError):
+                    continue
+                    
+            if valid_alternatives:
+                best_alt = None
+                min_suggestions = float('inf')
+                
+                for alt, dist in valid_alternatives:
+                    alt_name = alt.get("name", "")
+                    c.execute("SELECT COUNT(*) FROM searches WHERE place = ? AND suggested_place = ?", (place, alt_name))
+                    res = c.fetchone()
+                    count = res[0] if res else 0
+                    
+                    if count < min_suggestions:
+                        min_suggestions = count
+                        best_alt = alt
+                
+                if best_alt:
+                    suggested_place = best_alt.get("name", "")
+                    suggestion_reason = best_alt.get("reason", "")
+                else:
+                    suggested_place = "None nearby"
+
+        # Insert search record with suggested alternative to track distribution
+        c.execute("INSERT INTO searches (place, timestamp, crowd_level, suggested_place) VALUES (?, ?, ?, ?)", 
+                 (place, datetime.now().isoformat(), crowd_level, suggested_place))
         conn.commit()
         conn.close()
 
-        if suggested_place.lower() not in ("none needed", "none"):
+        if suggested_place.lower() not in ("none needed", "none", "none nearby", ""):
             encoded_destination = urllib.parse.quote(f"{suggested_place}, Goa, India")
             google_maps_url = f"https://www.google.com/maps/dir/?api=1&destination={encoded_destination}"
         else:
@@ -256,7 +315,7 @@ def search_place(place: str):
             "feature_2_desc": ai_data.get("feature_2_desc", ""),
             "trends": ai_data.get("trends", ""),
             "suggested_place": suggested_place,
-            "suggestion_reason": ai_data.get("suggestion_reason", ""),
+            "suggestion_reason": suggestion_reason,
             "google_maps_url": google_maps_url,
             "prediction_type": "Groq Premium Guide"
         }
